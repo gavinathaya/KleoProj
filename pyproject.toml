@@ -1,0 +1,16 @@
+[project]
+name = "kleopy"
+version = "0.1.0"
+description = "Orbit search toolkit for asteroid 216-Kleopatra using the Dipole-Segment model"
+authors = [{name="Gavin A.S.", email="gavinathaya.s@gmail.com"}]
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
