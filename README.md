@@ -13,10 +13,11 @@ Custom tools for 216-Kleopatra using the Dipole-Segment model.
 4. orbital_eq : Equations related to the orbital dynamics of 216-Kleopatra
 
 ## License
-[BSD 3-Clause License](LICENSE.txt)
+[BSD 3-Clause License](LICENSE)
 
 ## Authors
-- Gavin Athaya S. (@gavinathaya)
+- Gavin Athaya S. [(@gavinathaya)](https://github.com/gavinathaya)
+- Fernanda [(@fernandaputra21)](https://github.com/fernandaputra21)
 
 ## Acknowledgements
 *This whole project and kleopy leverages the following python packages*
