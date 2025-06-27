@@ -26,14 +26,3 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
----
-
-This package depends on the following open-source libraries:
-
-- NumPy — https://numpy.org/
-- SciPy — https://scipy.org/
-- Matplotlib — https://matplotlib.org/
-
-Each of these libraries is governed by its own license terms.
-Please consult their respective documentation and license files for details.

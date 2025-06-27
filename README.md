@@ -14,10 +14,18 @@ Custom tools for 216-Kleopatra using the Dipole-Segment model.
 
 ## License
 [BSD 3-Clause License](LICENSE)
+This package depends on the following open-source libraries:
+
+- NumPy — https://numpy.org/
+- SciPy — https://scipy.org/
+- Matplotlib — https://matplotlib.org/
+
+Each of these libraries is governed by its own license terms.
+Please consult their respective documentation and license files for details.
 
 ## Authors
 - Gavin Athaya S. [(@gavinathaya)](https://github.com/gavinathaya)
-- Fernanda [(@fernandaputra21)](https://github.com/fernandaputra21)
+- Fernanda Putra [(@fernandaputra21)](https://github.com/fernandaputra21)
 
 ## Acknowledgements
 *This whole project and kleopy leverages the following python packages*
