@@ -86,6 +86,7 @@ def potential_eff(x, y, z) -> float:
 def EOM(t : float, Y : np.ndarray) -> np.ndarray:
     """
     Equations of motion around 216-Kleopatra at state vector Y at time t.
+    It takes the state vector Y and returns the derivative of Y at time t as dYt
 
     Parameters
     ----------
@@ -112,7 +113,7 @@ def EOM(t : float, Y : np.ndarray) -> np.ndarray:
 
     #Define the variables s, d, p for the equations of motion
     s = r1 + r2
-    d = r1 - r2
+    # d = r1 - r2 #Apparently not used in the equations of motion
     p = r1 * r2
 
     #Derivative of the state vector Y at time t
