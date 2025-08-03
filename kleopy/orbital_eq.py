@@ -16,7 +16,7 @@ EOM(t, Y) -> np.ndarray          : Equations of motion at time t for state vecto
 from kleopy.constants import (
     G, m1, m2, ms, l, l1, l2, kappa, T, mu, mu_s
 )
-import numpy as np
+import numpy as np; import numpy.typing as npt
 
 #Bound all constants to the module to improve performance
 G = G; m1 = m1; m2 = m2; ms = ms; l = l; l1 = l1; l2 = l2
@@ -24,24 +24,29 @@ kappa = kappa; T = T; mu = mu; mu_s = mu_s
 
 M = m1 + m2 + ms  #Total mass of 216-Kleopatra
 #----- Potentials -----
-def potential(x, y, z) -> float:
+def potential(x: float | npt.ArrayLike, y: float | npt.ArrayLike, z: float | npt.ArrayLike):
     """
     Gravitational potential from 216-Kleopatra at position (x, y, z).
+    Uses vectorized operations for performance.
 
     Parameters
     ----------
-    x : float
+    x : float or np.ndarray
         x-coordinate in the synodic frame.
-    y : float
+    y : float or np.ndarray
         y-coordinate in the synodic frame.
-    z : float
+    z : float or np.ndarray
         z-coordinate in the synodic frame.
     
     Returns
     -------
-    U : float
+    U : float or np.ndarray
         Gravitational potential at (x,y,z).
     """
+    #Convert inputs to numpy arrays for parrallel processing
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    z = np.asarray(z, dtype=float)
     #Calculating distances from the two bodies in 216-Kleopatra
     r1 = np.sqrt((x + l1)**2 + y**2 + z**2) #Distance to first body
     r2 = np.sqrt((x - l2)**2 + y**2 + z**2) #Distance to second body
@@ -53,24 +58,30 @@ def potential(x, y, z) -> float:
     U = -G * M * ((1 - mu) * (1-mu_s)/r1 + mu * (1-mu_s)/r2 + mu_s/l * np.log((r1+r2+l)/(r1+r2-l)))
     return U
 
-def potential_eff(x, y, z) -> float:
+def potential_eff(x: float | npt.ArrayLike, y: float | npt.ArrayLike, z: float | npt.ArrayLike) -> np.ndarray:
     """
     Effective gravitational potential from 216-Kleopatra at position (x, y, z) due to synodic frame.
+    Uses vectorized operations for performance.
 
     Parameters
     ----------
-    x : float
+    x : float or np.ndarray
         x-coordinate in the synodic frame.
-    y : float
+    y : float or np.ndarray
         y-coordinate in the synodic frame.
-    z : float
+    z : float or np.ndarray
         z-coordinate in the synodic frame.
     
     Returns
     -------
-    Omega : float
+    Omega : float or np.ndarray
         Effective gravitational potential at (x,y,z).
     """
+    #Convert inputs to numpy arrays for parrallel processing
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    z = np.asarray(z, dtype=float)
+
     #Calculating distances from the two bodies in 216-Kleopatra
     r1 = np.sqrt((x + l1)**2 + y**2 + z**2) #Distance to first body
     r2 = np.sqrt((x - l2)**2 + y**2 + z**2) #Distance to second body
@@ -83,7 +94,7 @@ def potential_eff(x, y, z) -> float:
     return Omega
 
 #----- Equations of motion -----
-def EOM(t : float, Y : np.ndarray) -> np.ndarray:
+def EOM(t, Y):
     """
     Equations of motion around 216-Kleopatra at state vector Y at time t.
     It takes the state vector Y and returns the derivative of Y at time t as dYt
