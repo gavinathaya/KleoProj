@@ -19,7 +19,7 @@ import numpy as np; import numpy.typing as npt
 import sys; import time
 from kleopy.orbital_eq import potential_eff
 
-def find_dyt(x0: float | npt.ArrayLike, C: float | npt.ArrayLike) -> np.ndarray:
+def find_dy0t(x0: float | npt.ArrayLike, C: float | npt.ArrayLike) -> np.ndarray:
     """
     Calculate the dy0t value for a given x0 and C (Jacobian constant).
     Uses vectorized operations for performance.
@@ -33,14 +33,26 @@ def find_dyt(x0: float | npt.ArrayLike, C: float | npt.ArrayLike) -> np.ndarray:
     
     Returns
     -------
-    dyt : np.ndarray
+    dy0t : np.ndarray
         The dy0t value calculated from the effective potential at (x0, 0, 0) and the Jacobian constant C.
     """
-    np.seterr(invalid='ignore', divide='ignore')  # Ignore invalid values in potential_eff
+    #Ignore invalid values in potential_eff
+    np.seterr(invalid='ignore', divide='ignore')
+
+    #Insure inputs are numpy arrays
     x0 = np.asarray(x0)
     C = np.asarray(C)
-    dyt = np.sqrt(2*potential_eff(x0,0,0) - C)
-    return dyt
+
+    #Invalid value handling
+    sqrtval = 2 * potential_eff(x0, 0, 0) - C
+    badmask = (sqrtval < 0) | np.isinf(sqrtval) #Mask for invalid values
+    
+    #Calculate dy0t
+    dy0t = np.sqrt(sqrtval)
+
+    #Set invalid values to NaN
+    dy0t[badmask] = np.nan 
+    return dy0t
 
 def init_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: float = 5, *, 
               dif_x0: float = 0.001, dif_C:float = 0.001, 
@@ -89,7 +101,7 @@ def init_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: f
     X0_grid, C_grid = np.meshgrid(x0_array, C_array, indexing='ij') #ij indexing: i-th x0, j-th C
     
     #Apply the find_dyt function to each pair of (x0, C) in the grid
-    DY0T_grid = find_dyt(X0_grid, C_grid)
+    DY0T_grid = find_dy0t(X0_grid, C_grid)
 
     #End time and confirm grid initialization
     end_time = time.time()
