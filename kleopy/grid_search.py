@@ -69,11 +69,15 @@ def init_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: f
     -------
     X0_grid : np.ndarray
         2D array of shape (nx0, nC) containing x0 values for i-th x0 and j-th C.
+        Where C is the jacobian constant.
     C_grid : np.ndarray
-        2D array of shape (nx0, nC) containing C values for i-th x0 and j-th C. Where C is the jacobian constant.
+        2D array of shape (nx0, nC) containing C values for i-th x0 and j-th C.
+        Where C is the jacobian constant.
     DY0T_grid : np.ndarray
-        2D array of shape (nx0, nC) containing dy0t values for i-th x0 and j-th C. Where C is the jacobian constant.    
-    grid : np.ndarray
+        2D array of shape (nx0, nC) containing dy0t values for i-th x0 and j-th C.
+        Where C is the jacobian constant.    
+    grid : np.ndarray, optional
+        Only returns if retgrid is true.
         Array of shape (N, 2) containing pairs of (x0, C).
     """
     #Start time and confirm grid initialization start
@@ -90,10 +94,12 @@ def init_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: f
     #End time and confirm grid initialization
     end_time = time.time()
     sys.stdout.write(f"\r{'\033[92m'}Grid initialized! Completed in {end_time - start_time} seconds{'\033[0m'} ")
+
+    #Return the grids and optionally the grid of pairs (x0, C)
     if retgrid is True:
         # Array of shape (N, 2) containing pairs of (x0, C).
         grid = np.array(np.meshgrid(x0_array, C_array)).T.reshape(-1, 2)
         return X0_grid, C_grid, DY0T_grid, grid
     else:
-        #Return the grid of (x0, C) pairs and their corresponding dyt values
+        #Returns ij grid of x0, C, and dy0t values.
         return X0_grid, C_grid, DY0T_grid
