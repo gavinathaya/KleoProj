@@ -18,6 +18,7 @@ init_grid(x0_min, x0_max,
 import numpy as np; import numpy.typing as npt
 import sys; import time
 from kleopy.orbital_eq import potential_eff
+import kleopy.integrator as integrator
 
 def find_dy0t(x0: float | npt.ArrayLike, C: float | npt.ArrayLike) -> np.ndarray:
     """
@@ -87,7 +88,7 @@ def init_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: f
         Where C is the jacobian constant.
     DY0T_grid : np.ndarray
         2D array of shape (nx0, nC) containing dy0t values for i-th x0 and j-th C.
-        Where C is the jacobian constant.    
+        Where C is the jacobian constant.
     grid : np.ndarray, optional
         Only returns if retgrid is true.
         Array of shape (N, 2) containing pairs of (x0, C).
@@ -115,3 +116,34 @@ def init_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: f
     else:
         #Returns ij grid of x0, C, and dy0t values.
         return X0_grid, C_grid, DY0T_grid
+
+def process_grid(fun, X0_grid: np.ndarray, DY0T_grid: np.ndarray): #-> np.ndarray:
+    """
+    Integrates the grid of x0, C, and dy0t values until the T/2 point.
+    Uses vectorized operations for performance.
+
+    Parameters
+    ----------
+    X0_grid : np.ndarray
+        2D array of shape (nx0, nC) containing x0 values for i-th x0 and j-th C.
+        Where C is the jacobian constant.
+
+    DY0T_grid : np.ndarray
+        2D array of shape (nx0, nC) containing dy0t values for i-th x0 and j-th C.
+        Where C is the jacobian constant.
+    
+    Returns
+    -------
+    DXT_grid : np.ndarray
+        2D array of shape (nx0, nC) containing dxt(T/2) values for i-th x0 and j-th C.
+        Where C is the jacobian constant.
+    """
+    #Insure inputs are numpy arrays
+    X0_grid = np.asarray(X0_grid)
+    DY0T_grid = np.asarray(DY0T_grid)
+
+    #Calculate dxt(T/2) for each pair of (x0, C) in the grid
+    DXT_grid = np.zeros_like(DY0T_grid)  # Initialize the grid
+    DXT_grid = integrator.find_dxt(fun, X0_grid, DY0T_grid)
+
+    return DXT_grid
