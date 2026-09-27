@@ -94,7 +94,7 @@ def potential_eff(x: float | npt.ArrayLike, y: float | npt.ArrayLike, z: float |
     return Omega
 
 #----- Equations of motion -----
-def EOM(t, Y):
+def EOM_complete(t, Y):
     """
     Equations of motion around 216-Kleopatra at state vector Y at time t.
     It takes the state vector Y and returns the derivative of Y at time t as dYt
@@ -137,5 +137,45 @@ def EOM(t, Y):
             - (1 - 2 * kappa *mu_s * s / ((s**2 - 1) * p))) * y), #ddyt
            (kappa * ((1 - mu_s) / 2 * (1 / (r1**3) + 1 / (r2**3))
             + 2 * kappa * mu_s * s / ((s**2 - 1) * p)) * z)] #ddzt
+    dYt = np.array(dYt, dtype=float)
+    return dYt
+
+def EOM(t, Y):
+    """
+    Equations of motion around 216-Kleopatra at state vector Y at time t.
+    It takes the state vector Y and returns the derivative of Y at time t as dYt
+
+    Parameters
+    ----------
+    Y : np.ndarray
+        State vector containing position and velocity in the synodic frame.
+        Y      = [x, y, dxt, dyt]
+        Indeces:  0  1   2    3
+    
+    Returns
+    -------
+    dYt : np.ndarray
+        Derivative of the state vector Y at time t.
+        dYt     =   [dxt, dyt, ddxt, ddyt]
+        Indeces:      0    1     2    3 
+    """
+    #Unpack the state vector Y
+    x, y, dxt, dyt = Y
+
+    #Calculating distances from the two bodies in 216-Kleopatra using the state vector Y
+    r1 = np.sqrt((x + l1)**2 + y**2) #Distance to first body
+    r2 = np.sqrt((x - l2)**2 + y**2) #Distance to second body
+
+    #Define the variables s and p for the equations of motion
+    s = r1 + r2
+    p = r1 * r2
+
+    #Derivative of the state vector Y at time t
+    dYt = [dxt, #dxt
+           dyt, #dyt
+           (2 * dyt + kappa * (1 - mu_s) / 2 * ((x + l1) / (r1**3) +(x - l2) / (r2**3)
+            - (1 - 2 * kappa * mu_s / (s * p)) *x)), #ddxt
+           (-2 * dxt + (kappa * (1 - mu_s)/ 2 * (1 / (r1**3) + 1 / (r2**3))
+            - (1 - 2 * kappa *mu_s * s / ((s**2 - 1) * p))) * y)] #ddyt
     dYt = np.array(dYt, dtype=float)
     return dYt
