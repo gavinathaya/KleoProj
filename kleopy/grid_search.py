@@ -23,6 +23,7 @@ import sys; import time
 from itertools import repeat
 from kleopy.orbital_eq import potential_eff, EOM
 from kleopy.misc import progress_bar
+from concurrent.futures import ProcessPoolExecutor
 
 def find_dy0t(x0: float | npt.ArrayLike, C: float | npt.ArrayLike) -> np.ndarray:
     """
@@ -189,11 +190,23 @@ def EOM_event(t,Y):
 EOM_event.terminal = True # pyright: ignore[reportFunctionMemberAccess]
 EOM_event.direction = -1  # pyright: ignore[reportFunctionMemberAccess]
 
-def _grid_search_worker(x0_array: np.ndarray, dy0t_array: np.ndarray, *, time_span = (0, 1e6), event_func = EOM_event, atol = 1e-12, rtol = 1e-10, debug = False):
+def dxt_at_half_T_finder(x0: float, C: float, *, time_span = (0, 1e6), events = EOM_event, atol = 1e-12, rtol = 1e-10, debug = False):
+    dy0t = float(find_dy0t(x0, C))
+    Y0 = [x0, 0, 0, dy0t]
+    sol = solve_ivp(EOM, time_span, Y0, method = 'Radau', events = events, atol = atol, rtol = rtol)
+    if sol.y_events[0].size < 1:
+            print(f"{'\033[31m'}WARNING: y = 0 NEVER REACHED (REALLY STIFF) FOR INITIAL CONDITIONS x0: {x0}| dy0t: {dy0t}{'\033[0m'}")
+            return np.nan
+    dxt_found = sol.y_events[0][1] #0 index as the "first" event function triggered and 1 as the "second" component of Y state vector
+    return dxt_found
+
+def _grid_search_worker(x0_array: np.ndarray, C: float | np.ndarray, *, time_span = (0, 1e6), event_func = EOM_event, atol = 1e-12, rtol = 1e-10, debug = False):
     """
     Single worker to do the grid search process
     """
-    # TODO: Dimension check, both should be 1 dimensional NDArrays and have the same size
+    C = np.asarray(C)
+    dy0t_array = find_dy0t(x0_array, C)
+    # TODO: Dimension check, x0_array should be a 1 dimensional NDArray
     i_total = x0_array.size
     found_orbits = []
     #Python list for storing dxt at T/2 values
@@ -220,13 +233,24 @@ def _grid_search_worker(x0_array: np.ndarray, dy0t_array: np.ndarray, *, time_sp
     sign_changes = np.where(dxt_at_half_T[:-1] * dxt_at_half_T[1:] < 0)[0] # pyright: ignore[reportIndexIssue]
     exact_zeros = np.where(dxt_at_half_T == 0)[0]
     if exact_zeros.size > 0:
-        found_orbits.extend(zip(x0_array[exact_zeros], dy0t_array[exact_zeros]))
-    
-    return None
+        found_orbits.extend(zip(x0_array[exact_zeros], dy0t_array[exact_zeros], repeat(C)))
+     # apply Brent's method in detected sign changes
+    for i in sign_changes:
+        low_bound, high_bound = x0_array[i], x0_array[i+1]
+        try:
+            x0_found = float(brentq(lambda x: dxt_at_half_T_finder(x, C, time_span = time_span, events = event_func), low_bound, high_bound, xtol=1e-14, rtol = 1e-13)) # pyright: ignore[reportArgumentType] #xtol=1e-14, rtol = 1e-13
+            dy0t_found = float(find_dy0t(x0_found, C))
+            found_orbits.append((x0_found, dy0t_found, C))
+        except Exception as e:
+            if debug: print(f"Root finding failed between {low_bound} and {high_bound}: {e}")
+            pass
+    # sorts and remove duplicate roots
+    found_orbits = np.unique(np.asarray(found_orbits), axis=0) # pyright: ignore[reportCallIssue]
+    return found_orbits
 
 def process_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max: float = 5, *, 
-              dif_x0: float = 0.001, dif_C:float = 0.001, 
-              retgrid = False):
+              dif_x0: float = 0.001, dif_C:float = 0.001, time_span = (0, 1e6), event_func = EOM_event,
+              atol = 1e-12, rtol = 1e-10, n_of_workers = None, debug = False):
     """
     Initializes a grids of x0, C, and dy0t values for the grid search process.
     Indexing is done in ij format, meaning the i-th x0 and j-th C.
@@ -265,15 +289,34 @@ def process_grid(x0_min: float = -3, x0_max: float = 2, C_min: float = -3, C_max
     #Start time and confirm grid initialization start
     start_time = time.time()
     sys.stdout.write(f"{'\033[94m'}Initializing grid...{'\033[0m'}")
+    sys.stdout.flush()
     #Create a grid of x0 and C values
     x0_array = np.linspace(x0_min, x0_max, int((x0_max - x0_min) / dif_x0) + 1)
     C_array = np.linspace(C_min, C_max, int((C_max - C_min) / dif_C) + 1)
-    X0_grid, C_grid = np.meshgrid(x0_array, C_array, indexing='ij') #ij indexing: i-th x0, j-th C
-    
-    #Apply the find_dyt function to each pair of (x0, C) in the grid
-    DY0T_grid = find_dy0t(X0_grid, C_grid)
 
     #End time and confirm grid initialization
     end_time = time.time()
-    sys.stdout.write(f"\r{'\033[92m'}Grid initialized! Completed in {end_time - start_time} seconds{'\033[0m'} ")
-    return   
+    sys.stdout.write(f"\r{'\033[92m'}Grid initialized! Completed in {end_time - start_time} seconds{'\033[0m'}")
+    sys.stdout.flush()
+
+    #Grid search preparation
+    if n_of_workers is None:
+        n_of_workers = cpu_count(logical=False)
+
+    #Parallel Grid Search (God help our laptops)
+    sys.stdout.write(f"{'\033[94m'}Running parallel grid search... \nNumber of workers used: {n_of_workers}{'\033[0m'}")
+    sys.stdout.flush()
+    start_time = time.time()
+    with ProcessPoolExecutor(max_workers=n_of_workers) as executor:
+        sym_per_orbits = list(
+            executor.map(
+                _grid_search_worker,
+                repeat(x0_array),
+                C_array
+            )
+        )
+    if debug: print(f"Found Symmetrical Periodic Orbits: {sym_per_orbits}")
+    end_time = time.time()
+    sys.stdout.write(f"\r{'\033[92m'}Grid search finished! Completed in {end_time - start_time} seconds{'\033[0m'}")
+    sys.stdout.flush()
+    return sym_per_orbits
